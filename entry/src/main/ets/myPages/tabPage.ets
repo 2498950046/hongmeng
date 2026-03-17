@@ -1,5 +1,6 @@
 // 引入你们4个人各自负责的页面组件
 import { HomeView } from '../home/HomeView';
+import { NearbyView } from '../home/NearbyView';
 
 
 interface TabData {
@@ -32,7 +33,7 @@ struct MainPage {
           // 这里是你(成员A)负责的页面
           HomeView()
         } else if (this.currentIndex === 1) {
-          // NearbyView()
+          NearbyView()
         } else if (this.currentIndex === 2) {
           // DiscoverView()
         } else if (this.currentIndex === 3) {

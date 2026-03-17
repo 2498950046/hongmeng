@@ -1,0 +1,16 @@
+{
+  "src": [
+    "pages/RouterPage",
+    "pages/Index",
+    "pages/test",
+    "pages/FlexPage",
+    "pages/ListPage",
+    "pages/gradPage",
+    "pages/SwiperPage1",
+    "pages/tabPage",
+    "pages/EntryPage",
+    "pages/EntryToPage",
+    "myPages/tabPage",
+    "home/SearchView"
+  ]
+}

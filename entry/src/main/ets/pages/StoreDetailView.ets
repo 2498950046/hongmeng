@@ -4,7 +4,7 @@ import { RdbManager } from '../utils/RdbManager';
 
 @Entry
 @Component
-export struct StoreDetailView {
+struct StoreDetailView {
   @State restaurantId: string = '';
   @State restaurant: RestaurantDetail | null = null;
   @State postList: PostInfo[] = [];
@@ -28,9 +28,7 @@ export struct StoreDetailView {
     this.loading = false;
   }
 
-  /**
-   * 从 restaurants 表读取该店铺的详细信息
-   */
+  // 从 restaurants 表读取该店铺的详细信息
   async loadRestaurantDetail() {
     try {
       const store = RdbManager.getStore();
@@ -74,9 +72,7 @@ export struct StoreDetailView {
     }
   }
 
-  /**
-   * 从 posts 表中查询该店铺下所有评价/探店帖子
-   */
+  // 从 posts 表中查询该店铺下所有评价/探店帖子
   async loadRestaurantPosts() {
     try {
       const store = RdbManager.getStore();
@@ -128,7 +124,7 @@ export struct StoreDetailView {
     Column() {
       // 顶部标题栏
       Row() {
-        Image($r('app.media.1'))
+        Image($r('app.media.back'))
           .width(24)
           .height(24)
           .margin({ right: 8 })

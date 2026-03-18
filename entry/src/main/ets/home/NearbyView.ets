@@ -1,11 +1,10 @@
-// NearbyView.ets
 import geoLocationManager from '@ohos.geoLocationManager';
 import abilityAccessCtrl, { Permissions, PermissionRequestResult } from '@ohos.abilityAccessCtrl';
 import router from '@ohos.router';
 import relationalStore from '@ohos.data.relationalStore';
 import { RdbManager } from '../utils/RdbManager';
 
-// 当数据库还没预置数据时，用于快速开发调试的本地假数据（显式标注类型）
+// 测试数据
 const MOCK_RESTAURANTS: RestaurantInfo[] = [
   {
     id: 'r001',
@@ -15,7 +14,7 @@ const MOCK_RESTAURANTS: RestaurantInfo[] = [
     latitude: 39.914,
     longitude: 116.399,
     rating: 4.5,
-    coverUrl: '/images/rest1.jpg',
+    coverUrl: '/media/1.png',
     distance: 0
   },
   {
@@ -26,7 +25,7 @@ const MOCK_RESTAURANTS: RestaurantInfo[] = [
     latitude: 39.935,
     longitude: 116.455,
     rating: 4.8,
-    coverUrl: '/images/rest2.jpg',
+    coverUrl: '/media/2.png',
     distance: 0
   },
   {
@@ -37,27 +36,26 @@ const MOCK_RESTAURANTS: RestaurantInfo[] = [
     latitude: 39.983,
     longitude: 116.313,
     rating: 4.2,
-    coverUrl: '/images/rest3.jpg',
+    coverUrl: '/media/3.png',
     distance: 0
   }
 ];
 
 @Component
 export struct NearbyView {
-  @State currentLatitude: number = 39.908;   // 默认天安门附近，拿不到定位时的兜底
+  // 拿不到定位时，定位默认在天安门附近
+  @State currentLatitude: number = 39.908;
   @State currentLongitude: number = 116.397;
   @State nearbyRestaurants: RestaurantInfo[] = [];
   @State isLocating: boolean = true;
   @State locationDesc: string = '正在定位中...';
 
   aboutToAppear() {
-    // 正式接入 LocationKit 权限 & 获取当前位置，然后再查数据库并计算距离
+    // 接入LocationKit权限并获取当前位置，然后再查数据库并计算距离
     this.requestLocationPermission();
   }
 
-  /**
-   * 申请定位权限
-   */
+  // 申请定位权限
   async requestLocationPermission() {
     let atManager = abilityAccessCtrl.createAtManager();
     try {
@@ -82,9 +80,7 @@ export struct NearbyView {
     }
   }
 
-  /**
-   * 调用 geoLocationManager 获取当前位置
-   */
+  // 调用 geoLocationManager 获取当前位置
   async getCurrentLocation() {
     try {
       let location = await geoLocationManager.getCurrentLocation();
@@ -99,10 +95,7 @@ export struct NearbyView {
     }
   }
 
-  /**
-   * 从本地 SQLite 的 restaurants 表中读取数据，
-   * 计算与当前经纬度的距离并按距离升序排序
-   */
+  // 从本地SQLite的restaurants表中读取数据，计算与当前经纬度的距离并按距离升序排序
   async loadNearbyFromDB() {
     this.isLocating = true;
     let resultList: RestaurantInfo[] = [];
@@ -148,13 +141,13 @@ export struct NearbyView {
         });
       }
 
-      // 一定要关闭 ResultSet，避免内存泄漏
+      // 关闭 ResultSet，避免内存泄漏
       resultSet.close();
 
       // 如果数据库里暂时还没有任何餐厅数据，就用 mock 数据兜底展示
       if (resultList.length === 0) {
         console.info('restaurants 表为空，使用本地 MOCK 数据');
-        // 修改点：避免使用对象展开运算符，逐个属性赋值并断言类型
+        // 逐个属性赋值并断言类型
         resultList = MOCK_RESTAURANTS.map((item: RestaurantInfo) => {
           const distance = this.calcDistance(
             this.currentLatitude,
@@ -208,9 +201,7 @@ export struct NearbyView {
     }
   }
 
-  /**
-   * 计算两点经纬度之间的距离（km）
-   */
+  // 计算两点经纬度之间的距离（km）
   calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371;
     const dLat = this.deg2rad(lat2 - lat1);
@@ -229,7 +220,7 @@ export struct NearbyView {
 
   build() {
     Column() {
-      // 这里将来可以替换为真正的 Map Kit 组件，比如地图容器 + 用户当前位置 marker
+      // 可以替换为真正的Map Kit组件，比如地图容器 + 用户当前位置marker
       Text('地图预览区域（可接入 Map Kit）')
         .width('100%')
         .height(200)
@@ -282,7 +273,8 @@ export struct NearbyView {
     .backgroundColor('#f8f8f8')
   }
 
-  @Builder restaurantItem(item: RestaurantInfo) {
+  @Builder
+  restaurantItem(item: RestaurantInfo) {
     Row() {
       Image(item.coverUrl)
         .width(80)

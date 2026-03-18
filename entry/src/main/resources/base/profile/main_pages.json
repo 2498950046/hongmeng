@@ -18,6 +18,9 @@
     "login/LoginPage",
     "login/RegisterPage",
 
-    "login/CollectionsPage"
+    "login/CollectionsPage",
+
+    "discover/FoodSquare",
+    "discover/PublishPost"
   ]
 }

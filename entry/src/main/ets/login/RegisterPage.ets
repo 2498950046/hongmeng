@@ -1,13 +1,6 @@
 import { RdbManager } from '../utils/RdbManager';
 import router from '@ohos.router';
-
-// 定义用户接口
-interface User {
-  user_id: string;
-  nickname: string;
-  avatar_url: string;
-  create_time: number;
-}
+import type { User } from '../types';
 
 @Entry
 @Component
@@ -25,7 +18,7 @@ struct RegisterPage {
     }
 
     if (this.nickname.length < 2) {
-      this.errorMessage = '昵称至少2个字符';
+      this.errorMessage = '昵称至少 2 个字符';
       return;
     }
 
@@ -43,16 +36,33 @@ struct RegisterPage {
     this.errorMessage = '';
 
     try {
-      // 创建新用户
-      const userId = await RdbManager.createUser(this.nickname);
-      const user = await RdbManager.getUserById(userId);
+      let userId: string;
+      
+      // 如果数据库已初始化，使用数据库注册
+      if (RdbManager.isInitialized()) {
+        console.info('RegisterPage', '使用数据库注册');
+        userId = await RdbManager.createUser(this.nickname);
+      } else {
+        // 数据库未初始化，使用本地模拟注册
+        console.warn('RegisterPage', '数据库未初始化，使用本地模拟注册');
+        userId = 'local_user_' + Date.now();
+      }
+      
+      const user: User = {
+        user_id: userId,
+        nickname: this.nickname,
+        avatar_url: '',
+        create_time: Date.now()
+      };
 
       if (user) {
         // 注册成功，自动登录
         AppStorage.setOrCreate('currentUser', user);
         AppStorage.setOrCreate('isLoggedIn', true);
         
-        // 返回上一页
+        console.info('RegisterPage', '注册成功！欢迎：' + user.nickname);
+        
+        // 直接返回上一页
         router.back();
       } else {
         this.errorMessage = '注册失败，请重试';

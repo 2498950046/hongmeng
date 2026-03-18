@@ -1,38 +1,7 @@
 import { RdbManager } from '../utils/RdbManager';
 import relationalStore from '@ohos.data.relationalStore';
 import router from '@ohos.router';
-
-// 定义收藏项接口
-interface CollectionItem {
-  id: string;
-  name: string;
-  type: number; // 1:餐厅, 2:帖子
-  image?: string;
-  rating?: number;
-  address?: string;
-}
-
-// 定义用户接口
-interface User {
-  user_id: string;
-  nickname: string;
-  avatar_url: string;
-  create_time: number;
-}
-
-// 定义餐厅接口
-interface Restaurant {
-  name: string;
-  address: string;
-}
-
-// 定义收藏接口
-interface Collection {
-  collection_id: string;
-  user_id: string;
-  target_id: string;
-  type: number;
-}
+import type { User, Collection, CollectionItem, Restaurant } from '../types';
 
 @Entry
 @Component
@@ -65,31 +34,30 @@ struct CollectionsPage {
 
     } catch (err) {
       console.error('加载收藏失败:', JSON.stringify(err));
+      // 加载失败时显示空列表
+      this.restaurantCollections = [];
+      this.postCollections = [];
     }
 
     this.isLoading = false;
   }
 
   async loadRestaurantDetails(collections: Collection[]): Promise<CollectionItem[]> {
-    const store = RdbManager.getStore();
     const result: CollectionItem[] = [];
 
     for (const collection of collections) {
-      const predicates = new relationalStore.RdbPredicates('restaurants');
-      predicates.equalTo('restaurant_id', collection.target_id);
-
       try {
-        const resultSet = await store.query(predicates);
-        if (resultSet.goToFirstRow()) {
-          result.push({
+        const restaurant = await RdbManager.getRestaurantById(collection.target_id);
+        if (restaurant) {
+          const collectionItem: CollectionItem = {
             id: collection.target_id,
-            name: resultSet.getString(resultSet.getColumnIndex('name')),
+            name: restaurant.name,
             type: 1,
-            rating: resultSet.getDouble(resultSet.getColumnIndex('rating')),
-            address: resultSet.getString(resultSet.getColumnIndex('address'))
-          } as CollectionItem);
+            rating: restaurant.rating,
+            address: restaurant.address
+          };
+          result.push(collectionItem);
         }
-        resultSet.close();
       } catch (err) {
         console.error('查询餐厅详情失败:', JSON.stringify(err));
       }
@@ -99,56 +67,27 @@ struct CollectionsPage {
   }
 
   async loadPostDetails(collections: Collection[]): Promise<CollectionItem[]> {
-    const store = RdbManager.getStore();
     const result: CollectionItem[] = [];
 
     for (const collection of collections) {
-      const predicates = new relationalStore.RdbPredicates('posts');
-      predicates.equalTo('post_id', collection.target_id);
-
       try {
-        const resultSet = await store.query(predicates);
-        if (resultSet.goToFirstRow()) {
-          // 获取关联的餐厅信息
-          const restaurantId = resultSet.getString(resultSet.getColumnIndex('restaurant_id'));
-          const restaurant: Restaurant | null = await this.getRestaurantById(restaurantId);
-          
-          result.push({
+        const post = await RdbManager.getPostById(collection.target_id);
+        if (post) {
+          const restaurant = await RdbManager.getRestaurantById(post.restaurant_id);
+          const collectionItem: CollectionItem = {
             id: collection.target_id,
             name: restaurant?.name || '未知餐厅',
             type: 2,
             address: restaurant?.address
-          } as CollectionItem);
+          };
+          result.push(collectionItem);
         }
-        resultSet.close();
       } catch (err) {
         console.error('查询帖子详情失败:', JSON.stringify(err));
       }
     }
 
     return result;
-  }
-
-  async getRestaurantById(restaurantId: string): Promise<Restaurant | null> {
-    const store = RdbManager.getStore();
-    const predicates = new relationalStore.RdbPredicates('restaurants');
-    predicates.equalTo('restaurant_id', restaurantId);
-
-    try {
-      const resultSet = await store.query(predicates);
-      if (resultSet.goToFirstRow()) {
-        const restaurant: Restaurant = {
-          name: resultSet.getString(resultSet.getColumnIndex('name')),
-          address: resultSet.getString(resultSet.getColumnIndex('address'))
-        };
-        resultSet.close();
-        return restaurant;
-      }
-      resultSet.close();
-    } catch (err) {
-      console.error('查询餐厅失败:', JSON.stringify(err));
-    }
-    return null;
   }
 
   async removeCollection(item: CollectionItem) {
@@ -253,7 +192,7 @@ struct CollectionsPage {
         .fontColor('#FFFFFF')
         .onClick(() => {
           router.pushUrl({
-            url: 'pages/LoginPage'
+            url: 'login/LoginPage'
           });
         })
     }

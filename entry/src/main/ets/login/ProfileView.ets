@@ -1,13 +1,6 @@
 import { RdbManager } from '../utils/RdbManager';
 import router from '@ohos.router';
-
-// 定义用户接口
-interface User {
-  user_id: string;
-  nickname: string;
-  avatar_url: string;
-  create_time: number;
-}
+import type { User } from '../types';
 
 @Component
 export struct ProfileView {
@@ -23,11 +16,17 @@ export struct ProfileView {
 
   async loadUserData() {
     if (this.currentUser) {
-      // 加载收藏数量
-      const restaurantCollections = await RdbManager.getUserCollections(this.currentUser.user_id, 1);
-      const postCollections = await RdbManager.getUserCollections(this.currentUser.user_id, 2);
-      this.collectionsCount = restaurantCollections.length;
-      this.likedPostsCount = postCollections.length;
+      try {
+        // 加载收藏数量
+        const restaurantCollections = await RdbManager.getUserCollections(this.currentUser.user_id, 1);
+        const postCollections = await RdbManager.getUserCollections(this.currentUser.user_id, 2);
+        this.collectionsCount = restaurantCollections.length;
+        this.likedPostsCount = postCollections.length;
+      } catch (err) {
+        console.warn('加载用户数据失败，使用默认值:', JSON.stringify(err));
+        this.collectionsCount = 0;
+        this.likedPostsCount = 0;
+      }
     }
   }
 

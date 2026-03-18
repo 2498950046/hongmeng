@@ -1,21 +1,6 @@
 import relationalStore from '@ohos.data.relationalStore';
-
-import common from '@ohos.app.ability.common'; // 添加这行新版导入
-// 定义用户接口
-interface User {
-  user_id: string;
-  nickname: string;
-  avatar_url: string;
-  create_time: number;
-}
-
-// 定义收藏接口
-interface Collection {
-  collection_id: string;
-  user_id: string;
-  target_id: string;
-  type: number;
-}
+import common from '@ohos.app.ability.common';
+import type { User, Collection, Restaurant, Post } from '../types';
 
 export class RdbManager {
   private static rdbStore: relationalStore.RdbStore | null = null;
@@ -28,6 +13,7 @@ export class RdbManager {
     };
 
     try {
+      console.info("RDB", "开始初始化数据库...");
       const store = await relationalStore.getRdbStore(context, STORE_CONFIG);
       RdbManager.rdbStore = store;
       console.info("RDB", "数据库创建/打开成功");
@@ -38,10 +24,21 @@ export class RdbManager {
       const createPostsSQL = 'CREATE TABLE IF NOT EXISTS posts (post_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, restaurant_id TEXT NOT NULL, content TEXT, image_urls TEXT, likes_count INTEGER DEFAULT 0, publish_time INTEGER)';
       const createCollectionsSQL = 'CREATE TABLE IF NOT EXISTS collections (collection_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, target_id TEXT NOT NULL, type INTEGER NOT NULL)';
 
+      console.info("RDB", "开始创建 users 表...");
       await RdbManager.executeSql(createUsersSQL);
+      console.info("RDB", "users 表创建成功");
+      
+      console.info("RDB", "开始创建 restaurants 表...");
       await RdbManager.executeSql(createRestaurantsSQL);
+      console.info("RDB", "restaurants 表创建成功");
+      
+      console.info("RDB", "开始创建 posts 表...");
       await RdbManager.executeSql(createPostsSQL);
+      console.info("RDB", "posts 表创建成功");
+      
+      console.info("RDB", "开始创建 collections 表...");
       await RdbManager.executeSql(createCollectionsSQL);
+      console.info("RDB", "collections 表创建成功");
       
       console.info("RDB", "所有数据表初始化完毕");
       
@@ -49,11 +46,11 @@ export class RdbManager {
       await RdbManager.insertMockData();
       
     } catch (err) {
-      console.error("RDB", `数据库初始化失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `数据库初始化失败：${JSON.stringify(err)}, name: ${err?.name}, message: ${err?.message}`);
     }
   }
 
-  // 执行SQL语句的辅助方法
+  // 执行 SQL 语句的辅助方法
   private static async executeSql(sql: string): Promise<void> {
     if (!RdbManager.rdbStore) {
       throw new Error("数据库未初始化");
@@ -63,7 +60,10 @@ export class RdbManager {
 
   // 插入测试数据
   private static async insertMockData(): Promise<void> {
-    if (!RdbManager.rdbStore) return;
+    if (!RdbManager.rdbStore) {
+      console.error("RDB", "数据库未初始化，无法插入测试数据");
+      return;
+    }
 
     try {
       // 检查是否已有数据
@@ -77,6 +77,8 @@ export class RdbManager {
         return;
       }
 
+      console.info("RDB", "开始插入测试数据...");
+      
       // 插入测试用户
       const testUser: relationalStore.ValuesBucket = {
         'user_id': 'user_001',
@@ -85,8 +87,9 @@ export class RdbManager {
         'create_time': Date.now()
       };
       await RdbManager.rdbStore.insert('users', testUser);
+      console.info("RDB", "测试用户插入成功");
 
-      // 插入测试餐厅
+      // 插入测试餐厅（涵盖 5 种分类）
       const testRestaurants: relationalStore.ValuesBucket[] = [
         {
           'restaurant_id': 'rest_001',
@@ -107,6 +110,36 @@ export class RdbManager {
           'longitude': 121.4737,
           'rating': 4.6,
           'cover_url': ''
+        },
+        {
+          'restaurant_id': 'rest_003',
+          'name': '木屋烧烤',
+          'category': '烧烤',
+          'address': '广州市天河区体育西路',
+          'latitude': 23.1291,
+          'longitude': 113.2644,
+          'rating': 4.5,
+          'cover_url': ''
+        },
+        {
+          'restaurant_id': 'rest_004',
+          'name': '星巴克咖啡',
+          'category': '咖啡',
+          'address': '深圳市南山区科技园',
+          'latitude': 22.5431,
+          'longitude': 114.0579,
+          'rating': 4.3,
+          'cover_url': ''
+        },
+        {
+          'restaurant_id': 'rest_005',
+          'name': '满记甜品',
+          'category': '甜品',
+          'address': '杭州市西湖区湖滨路',
+          'latitude': 30.2741,
+          'longitude': 120.1551,
+          'rating': 4.4,
+          'cover_url': ''
         }
       ];
 
@@ -114,28 +147,101 @@ export class RdbManager {
         await RdbManager.rdbStore.insert('restaurants', restaurant);
       }
 
+      // 插入测试帖子
+      const testPosts: relationalStore.ValuesBucket[] = [
+        {
+          'post_id': 'post_001',
+          'user_id': 'user_001',
+          'restaurant_id': 'rest_001',
+          'content': '海底捞服务真的没话说，食材新鲜，味道正宗！',
+          'image_urls': JSON.stringify(['img1.jpg', 'img2.jpg']),
+          'likes_count': 128,
+          'publish_time': Date.now() - 86400000
+        },
+        {
+          'post_id': 'post_002',
+          'user_id': 'user_001',
+          'restaurant_id': 'rest_002',
+          'content': '日式居酒屋氛围很好，适合小聚',
+          'image_urls': JSON.stringify(['img3.jpg']),
+          'likes_count': 56,
+          'publish_time': Date.now() - 172800000
+        },
+        {
+          'post_id': 'post_003',
+          'user_id': 'user_001',
+          'restaurant_id': 'rest_003',
+          'content': '烧烤味道不错，就是有点咸',
+          'image_urls': JSON.stringify(['img4.jpg', 'img5.jpg', 'img6.jpg']),
+          'likes_count': 89,
+          'publish_time': Date.now() - 259200000
+        }
+      ];
+
+      for (const post of testPosts) {
+        await RdbManager.rdbStore.insert('posts', post);
+      }
+
+      // 插入测试收藏
+      const testCollections: relationalStore.ValuesBucket[] = [
+        {
+          'collection_id': 'col_001',
+          'user_id': 'user_001',
+          'target_id': 'rest_001',
+          'type': 1
+        },
+        {
+          'collection_id': 'col_002',
+          'user_id': 'user_001',
+          'target_id': 'post_001',
+          'type': 2
+        },
+        {
+          'collection_id': 'col_003',
+          'user_id': 'user_001',
+          'target_id': 'rest_004',
+          'type': 1
+        }
+      ];
+
+      for (const collection of testCollections) {
+        await RdbManager.rdbStore.insert('collections', collection);
+      }
+
       console.info("RDB", "测试数据插入完毕");
     } catch (err) {
-      console.error("RDB", `插入测试数据失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `插入测试数据失败：${JSON.stringify(err)}`);
     }
   }
 
-  // 提供获取Store的方法
+  // 提供获取 Store 的方法
   public static getStore(): relationalStore.RdbStore {
     if (!RdbManager.rdbStore) {
+      console.warn("RDB", "数据库未初始化，将在下次初始化后可用");
       throw new Error("数据库未初始化");
     }
     return RdbManager.rdbStore;
   }
+  
+  public static isInitialized(): boolean {
+    return RdbManager.rdbStore !== null;
+  }
 
   // 用户相关操作
   public static async getUserById(userId: string): Promise<User | null> {
-    const store = RdbManager.getStore();
-    const predicates = new relationalStore.RdbPredicates('users');
-    predicates.equalTo('user_id', userId);
-
+    console.info('RdbManager', 'getUserById 被调用，userId:', userId);
+    
     try {
+      const store = RdbManager.getStore();
+      console.info('RdbManager', '获取 store 成功');
+      
+      const predicates = new relationalStore.RdbPredicates('users');
+      predicates.equalTo('user_id', userId);
+
+      console.info('RdbManager', '开始查询数据库...');
       const resultSet = await store.query(predicates);
+      console.info('RdbManager', '查询完成，rowCount:', resultSet.rowCount);
+      
       if (resultSet.rowCount > 0) {
         resultSet.goToFirstRow();
         const user: User = {
@@ -145,33 +251,40 @@ export class RdbManager {
           create_time: resultSet.getLong(resultSet.getColumnIndex('create_time'))
         };
         resultSet.close();
+        console.info('RdbManager', '找到用户:', user.nickname);
         return user;
       }
       resultSet.close();
+      console.info('RdbManager', '未找到用户');
       return null;
     } catch (err) {
-      console.error("RDB", `查询用户失败: ${JSON.stringify(err)}`);
+      console.error("RdbManager", `查询用户失败：${JSON.stringify(err)}, name: ${err?.name}, message: ${err?.message}`);
       return null;
     }
   }
 
   public static async createUser(nickname: string): Promise<string> {
-    const store = RdbManager.getStore();
-    const userId = `user_${Date.now()}`;
+    console.info('RdbManager', 'createUser 被调用，nickname:', nickname);
     
-    const valueBucket: relationalStore.ValuesBucket = {
-      'user_id': userId,
-      'nickname': nickname,
-      'avatar_url': '',
-      'create_time': Date.now()
-    };
-
     try {
-      await store.insert('users', valueBucket);
+      const store = RdbManager.getStore();
+      const userId = `user_${Date.now()}`;
+      
+      console.info('RdbManager', '开始插入用户，userId:', userId);
+      
+      const valueBucket: relationalStore.ValuesBucket = {
+        'user_id': userId,
+        'nickname': nickname,
+        'avatar_url': '',
+        'create_time': Date.now()
+      };
+
+      const result = await store.insert('users', valueBucket);
+      console.info('RdbManager', '用户创建成功，rowId:', result);
       return userId;
     } catch (err) {
-      console.error("RDB", `创建用户失败: ${JSON.stringify(err)}`);
-      throw new Error(`创建用户失败: ${JSON.stringify(err)}`);
+      console.error("RdbManager", `创建用户失败：${JSON.stringify(err)}, name: ${err?.name}, message: ${err?.message}, stack: ${err?.stack}`);
+      throw new Error(`创建用户失败：${err?.message || JSON.stringify(err)}`);
     }
   }
 
@@ -190,8 +303,8 @@ export class RdbManager {
     try {
       await store.insert('collections', valueBucket);
     } catch (err) {
-      console.error("RDB", `添加收藏失败: ${JSON.stringify(err)}`);
-      throw new Error(`添加收藏失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `添加收藏失败：${JSON.stringify(err)}`);
+      throw new Error(`添加收藏失败：${JSON.stringify(err)}`);
     }
   }
 
@@ -203,8 +316,8 @@ export class RdbManager {
     try {
       await store.delete(predicates);
     } catch (err) {
-      console.error("RDB", `删除收藏失败: ${JSON.stringify(err)}`);
-      throw new Error(`删除收藏失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `删除收藏失败：${JSON.stringify(err)}`);
+      throw new Error(`删除收藏失败：${JSON.stringify(err)}`);
     }
   }
 
@@ -218,17 +331,19 @@ export class RdbManager {
       const collections: Collection[] = [];
       
       while (resultSet.goToNextRow()) {
-        collections.push({
+        const collection: Collection = {
           collection_id: resultSet.getString(resultSet.getColumnIndex('collection_id')),
+          user_id: resultSet.getString(resultSet.getColumnIndex('user_id')),
           target_id: resultSet.getString(resultSet.getColumnIndex('target_id')),
           type: resultSet.getLong(resultSet.getColumnIndex('type'))
-        } as Collection);
+        };
+        collections.push(collection);
       }
       
       resultSet.close();
       return collections;
     } catch (err) {
-      console.error("RDB", `查询收藏失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `查询收藏失败：${JSON.stringify(err)}`);
       return [];
     }
   }
@@ -244,8 +359,69 @@ export class RdbManager {
       resultSet.close();
       return isCollected;
     } catch (err) {
-      console.error("RDB", `检查收藏状态失败: ${JSON.stringify(err)}`);
+      console.error("RDB", `检查收藏状态失败：${JSON.stringify(err)}`);
       return false;
+    }
+  }
+
+  // 获取餐厅详情
+  public static async getRestaurantById(restaurantId: string): Promise<Restaurant | null> {
+    const store = RdbManager.getStore();
+    const predicates = new relationalStore.RdbPredicates('restaurants');
+    predicates.equalTo('restaurant_id', restaurantId);
+
+    try {
+      const resultSet = await store.query(predicates);
+      if (resultSet.rowCount > 0) {
+        resultSet.goToFirstRow();
+        const restaurant: Restaurant = {
+          restaurant_id: resultSet.getString(resultSet.getColumnIndex('restaurant_id')),
+          name: resultSet.getString(resultSet.getColumnIndex('name')),
+          category: resultSet.getString(resultSet.getColumnIndex('category')),
+          address: resultSet.getString(resultSet.getColumnIndex('address')),
+          latitude: resultSet.getDouble(resultSet.getColumnIndex('latitude')),
+          longitude: resultSet.getDouble(resultSet.getColumnIndex('longitude')),
+          rating: resultSet.getDouble(resultSet.getColumnIndex('rating')),
+          cover_url: resultSet.getString(resultSet.getColumnIndex('cover_url'))
+        };
+        resultSet.close();
+        return restaurant;
+      }
+      resultSet.close();
+      return null;
+    } catch (err) {
+      console.error("RDB", `查询餐厅失败：${JSON.stringify(err)}`);
+      return null;
+    }
+  }
+
+  // 获取帖子详情
+  public static async getPostById(postId: string): Promise<Post | null> {
+    const store = RdbManager.getStore();
+    const predicates = new relationalStore.RdbPredicates('posts');
+    predicates.equalTo('post_id', postId);
+
+    try {
+      const resultSet = await store.query(predicates);
+      if (resultSet.rowCount > 0) {
+        resultSet.goToFirstRow();
+        const post: Post = {
+          post_id: resultSet.getString(resultSet.getColumnIndex('post_id')),
+          user_id: resultSet.getString(resultSet.getColumnIndex('user_id')),
+          restaurant_id: resultSet.getString(resultSet.getColumnIndex('restaurant_id')),
+          content: resultSet.getString(resultSet.getColumnIndex('content')),
+          image_urls: resultSet.getString(resultSet.getColumnIndex('image_urls')),
+          likes_count: resultSet.getLong(resultSet.getColumnIndex('likes_count')),
+          publish_time: resultSet.getLong(resultSet.getColumnIndex('publish_time'))
+        };
+        resultSet.close();
+        return post;
+      }
+      resultSet.close();
+      return null;
+    } catch (err) {
+      console.error("RDB", `查询帖子失败：${JSON.stringify(err)}`);
+      return null;
     }
   }
 }

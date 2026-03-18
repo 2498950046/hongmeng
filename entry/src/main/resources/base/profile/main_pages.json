@@ -12,15 +12,12 @@
     "pages/EntryToPage",
     "myPages/tabPage",
     "home/SearchView",
-
     "pages/StoreDetailView",
-
     "login/LoginPage",
     "login/RegisterPage",
-
     "login/CollectionsPage",
-
     "discover/FoodSquare",
-    "discover/PublishPost"
+    "discover/PublishPost",
+    "home/PostDetailView"
   ]
 }

@@ -88,6 +88,17 @@ export struct HomeView {
     .borderRadius(8)
     .margin({ bottom: 10 })
     .shadow({ radius: 4, color: '#0A000000', offsetY: 2 })
+    // ================= 👇 新增的跳转逻辑 =================
+    .onClick(() => {
+      router.pushUrl({
+        url: 'home/PostDetailView', // 假设你的详情页建在 home 文件夹下，请确保并在 main_pages.json 中注册
+        params: {
+          postData: item // 将整个 item 对象作为参数传过去
+        }
+      })
+    })
+    // ====================================================
+
   }
 
 

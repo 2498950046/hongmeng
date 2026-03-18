@@ -1,6 +1,7 @@
 // 引入你们4个人各自负责的页面组件
 import { HomeView } from '../home/HomeView';
 import { NearbyView } from '../home/NearbyView';
+import { ProfileView } from '../login/ProfileView';
 
 
 interface TabData {
@@ -37,7 +38,7 @@ struct MainPage {
         } else if (this.currentIndex === 2) {
           // DiscoverView()
         } else if (this.currentIndex === 3) {
-          // ProfileView()
+          ProfileView()
         }
       }
       .layoutWeight(1) // 自动撑开，占满除底栏外的所有垂直空间

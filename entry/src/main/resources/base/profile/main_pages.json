@@ -11,6 +11,11 @@
     "pages/EntryPage",
     "pages/EntryToPage",
     "myPages/tabPage",
-    "home/SearchView"
+    "home/SearchView",
+
+    "login/LoginPage",
+    "login/RegisterPage",
+
+    "login/CollectionsPage"
   ]
 }

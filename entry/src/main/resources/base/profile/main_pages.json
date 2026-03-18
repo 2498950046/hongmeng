@@ -13,6 +13,8 @@
     "myPages/tabPage",
     "home/SearchView",
 
+    "pages/StoreDetailView",
+
     "login/LoginPage",
     "login/RegisterPage",
 

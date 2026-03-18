@@ -23,9 +23,9 @@
         "name": "EntryAbility",
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
-        "icon": "$media:weixin",
-        "label": "$string:weixin",
-        "startWindowIcon": "$media:startIcon",
+        "icon": "$media:food",
+        "label": "$string:mishiji",
+        "startWindowIcon": "$media:food",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [

@@ -183,4 +183,116 @@ export class FoodDatabase {
       return false;
     }
   }
+
+  // 插入评论
+  async insertComment(comment: Comment): Promise<number> {
+    if (!this.rdbStore) {
+      console.error('[FoodDatabase] Database not initialized');
+      return -1;
+    }
+
+    const valueBucket: relationalStore.ValuesBucket = {
+      'postId': comment.postId,
+      'userId': comment.userId,
+      'userName': comment.userName,
+      'content': comment.content,
+      'createTime': comment.createTime
+    };
+
+    console.info('[FoodDatabase] Inserting comment:', {
+      postId: comment.postId,
+      content: comment.content
+    });
+
+    try {
+      const insertId = await this.rdbStore.insert('COMMENTS', valueBucket);
+      console.info(`[FoodDatabase] Inserted comment with id: ${insertId}`);
+
+      // 更新帖子的评论数
+      const postPredicates = new relationalStore.RdbPredicates('POSTS');
+      postPredicates.equalTo('id', comment.postId);
+      const postResult = await this.rdbStore.query(postPredicates, ['comments']);
+
+      if (postResult.goToFirstRow()) {
+        const currentComments = postResult.getLong(postResult.getColumnIndex('comments'));
+        const updateValue: relationalStore.ValuesBucket = {
+          'comments': currentComments + 1
+        };
+        await this.rdbStore.update(updateValue, postPredicates);
+        console.info(`[FoodDatabase] Updated post ${comment.postId} comments count to ${currentComments + 1}`);
+      }
+      postResult.close();
+
+      return insertId;
+    } catch (err) {
+      console.error(`[FoodDatabase] Failed to insert comment: ${err.message}`);
+      return -1;
+    }
+  }
+
+  // 根据帖子ID查询评论
+  async queryCommentsByPostId(postId: number): Promise<Comment[]> {
+    if (!this.rdbStore) {
+      console.error('[FoodDatabase] Database not initialized');
+      return [];
+    }
+
+    const comments: Comment[] = [];
+    const predicates = new relationalStore.RdbPredicates('COMMENTS');
+    predicates.equalTo('postId', postId);
+    predicates.orderByAsc('createTime'); // 按时间升序，最早的在前
+
+    console.info(`[FoodDatabase] Querying comments for postId: ${postId}`);
+
+    try {
+      const resultSet = await this.rdbStore.query(predicates,
+        ['id', 'postId', 'userId', 'userName', 'content', 'createTime']);
+
+      console.info(`[FoodDatabase] Query result count: ${resultSet.rowCount} comments found`);
+
+      while (resultSet.goToNextRow()) {
+        const comment = new Comment(
+          resultSet.getLong(resultSet.getColumnIndex('postId')),
+          resultSet.getString(resultSet.getColumnIndex('content')),
+          resultSet.getString(resultSet.getColumnIndex('userName'))
+        );
+
+        comment.id = resultSet.getLong(resultSet.getColumnIndex('id'));
+        comment.userId = resultSet.getString(resultSet.getColumnIndex('userId'));
+        comment.createTime = resultSet.getLong(resultSet.getColumnIndex('createTime'));
+
+        console.info(`[FoodDatabase] Loaded comment id=${comment.id} for post ${comment.postId}`);
+        comments.push(comment);
+      }
+      resultSet.close();
+    } catch (err) {
+      console.error(`[FoodDatabase] Failed to query comments: ${err.message}`);
+    }
+
+    console.info(`[FoodDatabase] Total comments loaded: ${comments.length}`);
+    return comments;
+  }
+
+  // 根据帖子ID查询评论数
+  async getCommentCount(postId: number): Promise<number> {
+    if (!this.rdbStore) {
+      return 0;
+    }
+
+    const predicates = new relationalStore.RdbPredicates('COMMENTS');
+    predicates.equalTo('postId', postId);
+
+    try {
+      const resultSet = await this.rdbStore.query(predicates, ['COUNT(*) as count']);
+      if (resultSet.goToFirstRow()) {
+        const count = resultSet.getLong(resultSet.getColumnIndex('count'));
+        resultSet.close();
+        return count;
+      }
+      resultSet.close();
+    } catch (err) {
+      console.error(`[FoodDatabase] Failed to get comment count: ${err.message}`);
+    }
+    return 0;
+  }
 }

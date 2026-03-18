@@ -18,6 +18,7 @@
     "login/CollectionsPage",
     "discover/FoodSquare",
     "discover/PublishPost",
-    "home/PostDetailView"
+    "home/PostDetailView",
+    "discover/CommentPage"
   ]
 }

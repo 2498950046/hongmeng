@@ -99,7 +99,7 @@ export class RdbManager {
           'latitude': 39.9042,
           'longitude': 116.4074,
           'rating': 4.8,
-          'cover_url': ''
+          'cover_url': 'haidilao'
         },
         {
           'restaurant_id': 'rest_002',
@@ -109,7 +109,7 @@ export class RdbManager {
           'latitude': 31.2304,
           'longitude': 121.4737,
           'rating': 4.6,
-          'cover_url': ''
+          'cover_url': 'jujiuwu'
         },
         {
           'restaurant_id': 'rest_003',
@@ -119,7 +119,7 @@ export class RdbManager {
           'latitude': 23.1291,
           'longitude': 113.2644,
           'rating': 4.5,
-          'cover_url': ''
+          'cover_url': 'shaokao'
         },
         {
           'restaurant_id': 'rest_004',
@@ -129,7 +129,7 @@ export class RdbManager {
           'latitude': 22.5431,
           'longitude': 114.0579,
           'rating': 4.3,
-          'cover_url': ''
+          'cover_url': 'starbucks'
         },
         {
           'restaurant_id': 'rest_005',
@@ -139,7 +139,7 @@ export class RdbManager {
           'latitude': 30.2741,
           'longitude': 120.1551,
           'rating': 4.4,
-          'cover_url': ''
+          'cover_url': 'dessert'
         }
       ];
 

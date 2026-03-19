@@ -4,51 +4,24 @@ import router from '@ohos.router';
 import relationalStore from '@ohos.data.relationalStore';
 import { RdbManager } from '../utils/RdbManager';
 
-// 测试数据
-const MOCK_RESTAURANTS: RestaurantInfo[] = [
-  {
-    id: 'r001',
-    name: '老北京涮肉',
-    category: '火锅',
-    address: '北京市东城区王府井大街1号',
-    latitude: 39.914,
-    longitude: 116.399,
-    rating: 4.5,
-    coverUrl: '/media/1.png',
-    distance: 0
-  },
-  {
-    id: 'r002',
-    name: '日式烧肉屋',
-    category: '烧烤',
-    address: '北京市朝阳区三里屯路2号',
-    latitude: 39.935,
-    longitude: 116.455,
-    rating: 4.8,
-    coverUrl: '/media/2.png',
-    distance: 0
-  },
-  {
-    id: 'r003',
-    name: '川味小馆',
-    category: '川菜',
-    address: '北京市海淀区中关村大街3号',
-    latitude: 39.983,
-    longitude: 116.313,
-    rating: 4.2,
-    coverUrl: '/media/3.png',
-    distance: 0
-  }
-];
-
 @Component
 export struct NearbyView {
-  // 拿不到定位时，定位默认在天安门附近
+  // 拿不到定位时，定位默认在成都天府广场
   @State currentLatitude: number = 39.908;
   @State currentLongitude: number = 116.397;
+  // 存放全量数据
+  @State allRestaurants: RestaurantInfo[] = [];
+  // 存放筛选排序后展示的数据
   @State nearbyRestaurants: RestaurantInfo[] = [];
+
   @State isLocating: boolean = true;
   @State locationDesc: string = '正在定位中...';
+
+  // 筛选状态：用户输入的最低和最高评分
+  @State minRatingStr: string = '';
+  @State maxRatingStr: string = '';
+
+  // @State filterMode: 'distance' | 'rating' | 'rating_high' = 'distance';
 
   aboutToAppear() {
     // 接入LocationKit权限并获取当前位置，然后再查数据库并计算距离
@@ -102,8 +75,6 @@ export struct NearbyView {
     try {
       const store = RdbManager.getStore();
       let predicates = new relationalStore.RdbPredicates('restaurants');
-      // 可以根据需要加筛选条件，例如只查评分>3.5的店：
-      // predicates.greaterThanOrEqualTo('rating', 3.5);
 
       // 查询所有字段，便于后续详情页展示
       let resultSet = await store.query(
@@ -143,62 +114,33 @@ export struct NearbyView {
 
       // 关闭 ResultSet，避免内存泄漏
       resultSet.close();
-
-      // 如果数据库里暂时还没有任何餐厅数据，就用 mock 数据兜底展示
-      if (resultList.length === 0) {
-        console.info('restaurants 表为空，使用本地 MOCK 数据');
-        // 逐个属性赋值并断言类型
-        resultList = MOCK_RESTAURANTS.map((item: RestaurantInfo) => {
-          const distance = this.calcDistance(
-            this.currentLatitude,
-            this.currentLongitude,
-            item.latitude,
-            item.longitude
-          );
-          return {
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            address: item.address,
-            latitude: item.latitude,
-            longitude: item.longitude,
-            rating: item.rating,
-            coverUrl: item.coverUrl,
-            distance: distance
-          } as RestaurantInfo;
-        });
-      }
-
-      // 按距离从近到远排序
-      resultList.sort((a, b) => a.distance - b.distance);
-      this.nearbyRestaurants = resultList;
+      this.allRestaurants = resultList;
+      // 应用默认排序
+      this.applyFilter();
     } catch (err) {
       console.error('从数据库加载附近餐厅失败', JSON.stringify(err));
-      // 查询失败时也可以退回到 MOCK 数据，保证 UI 有内容
-      let list: RestaurantInfo[] = MOCK_RESTAURANTS.map((item: RestaurantInfo) => {
-        const distance = this.calcDistance(
-          this.currentLatitude,
-          this.currentLongitude,
-          item.latitude,
-          item.longitude
-        );
-        return {
-          id: item.id,
-          name: item.name,
-          category: item.category,
-          address: item.address,
-          latitude: item.latitude,
-          longitude: item.longitude,
-          rating: item.rating,
-          coverUrl: item.coverUrl,
-          distance: distance
-        } as RestaurantInfo;
-      });
-      list.sort((a, b) => a.distance - b.distance);
-      this.nearbyRestaurants = list;
     } finally {
       this.isLocating = false;
     }
+  }
+  // 根据当前条件进行筛选和排序
+  applyFilter() {
+    let list = [...this.allRestaurants];
+
+    // 解析用户输入，如果未输入或输入非法则赋予默认极值
+    let min = parseFloat(this.minRatingStr);
+    let max = parseFloat(this.maxRatingStr);
+
+    if (isNaN(min)) min = 0;   // 默认最低 0 分
+    if (isNaN(max)) max = 5.0; // 默认最高 5 分
+
+    // 过滤在评分区间内的店铺
+    list = list.filter(item => item.rating >= min && item.rating <= max);
+
+    // 默认按距离升序展示
+    list.sort((a, b) => a.distance - b.distance);
+
+    this.nearbyRestaurants = list;
   }
 
   // 计算两点经纬度之间的距离（km）
@@ -220,29 +162,56 @@ export struct NearbyView {
 
   build() {
     Column() {
-      // 可以替换为真正的Map Kit组件，比如地图容器 + 用户当前位置marker
-      Text('地图预览区域（可接入 Map Kit）')
-        .width('100%')
-        .height(200)
-        .backgroundColor('#f0f0f0')
-        .textAlign(TextAlign.Center)
-        .fontColor('#999')
-        .fontSize(14);
-
       Text(this.locationDesc)
         .fontSize(12)
         .fontColor('#666')
-        .padding({ top: 8, left: 12, right: 12 });
+        .padding({ top: 8, left: 12, right: 12, bottom: 8 })
+
+      // 区间输入筛选栏
+      Row({ space: 8 }) {
+        Text('评分筛选:')
+          .fontSize(14)
+          .fontColor('#333')
+
+        TextInput({
+          placeholder: '最低'
+        })
+          .type(InputType.NUMBER_DECIMAL)
+          .width(90)
+          .height(36)
+          .fontSize(13)
+          .onChange((value: string) => {
+            this.minRatingStr = value;
+          })
+
+        Text('-').fontSize(14)
+
+        TextInput({
+          placeholder: '最高'
+        })
+          .type(InputType.NUMBER_DECIMAL)
+          .width(90)
+          .height(36)
+          .fontSize(13)
+          .onChange((value: string) => {
+            this.maxRatingStr = value;
+          })
+
+        Button('确定')
+          .height(36)
+          .fontSize(14)
+          .onClick(() => {
+            this.applyFilter();
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 12 })
+      .alignItems(VerticalAlign.Center)
 
       if (this.isLocating) {
-        LoadingProgress()
-          .width(50)
-          .height(50)
-          .margin({ top: 20 });
+        LoadingProgress().width(50).height(50).margin({ top: 20 });
       } else if (this.nearbyRestaurants.length === 0) {
-        Text('附近暂无餐厅')
-          .margin({ top: 20 })
-          .fontColor('#999');
+        Text('该评分区间暂无餐厅').margin({ top: 20 }).fontColor('#999');
       } else {
         List({ space: 12 }) {
           ForEach(this.nearbyRestaurants, (item: RestaurantInfo) => {
@@ -250,20 +219,14 @@ export struct NearbyView {
               this.restaurantItem(item)
             }
             .onClick(() => {
-              // 跳转到店铺详情页，传入 restaurantId
-              try {
-                router.pushUrl({
-                  url: 'pages/StoreDetailView',
-                  params: { restaurantId: item.id }
-                });
-              } catch (err) {
-                console.error('路由跳转失败', JSON.stringify(err));
-              }
+              router.pushUrl({
+                url: 'pages/StoreDetailView',
+                params: { restaurantId: item.id }
+              });
             })
           })
         }
         .width('100%')
-        .height('100%')
         .layoutWeight(1)
         .padding(12)
       }
@@ -276,28 +239,17 @@ export struct NearbyView {
   @Builder
   restaurantItem(item: RestaurantInfo) {
     Row() {
-      Image(item.coverUrl)
+      Image($r('app.media.' + item.coverUrl))
         .width(80)
         .height(80)
         .borderRadius(8)
         .objectFit(ImageFit.Cover)
         .margin({ right: 12 })
 
-      Column({ space: 4 }) {
-        Text(item.name)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .width('100%')
-        Text(`${item.category} · ${item.distance.toFixed(1)}km`)
-          .fontSize(14)
-          .fontColor('#666')
-          .width('100%')
-        Row() {
-          Text(`评分 ${item.rating.toFixed(1)}`)
-            .fontSize(12)
-            .fontColor('#ff8c00')
-        }
-        .width('100%')
+      Column({ space: 6 }) {
+        Text(item.name).fontSize(16).fontWeight(FontWeight.Medium).width('100%')
+        Text(`${item.category} · 距离 ${item.distance.toFixed(1)}km`).fontSize(13).fontColor('#666').width('100%')
+        Text(`⭐ ${item.rating.toFixed(1)}`).fontSize(13).fontColor('#ff8c00').width('100%')
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)

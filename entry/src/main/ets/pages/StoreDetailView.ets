@@ -64,7 +64,6 @@ struct StoreDetailView {
         console.warn('未在 restaurants 表中找到对应店铺，restaurantId=', this.restaurantId);
         this.restaurant = null;
       }
-
       resultSet.close();
     } catch (err) {
       console.error('查询店铺详情失败', JSON.stringify(err));
@@ -168,30 +167,26 @@ struct StoreDetailView {
         Scroll() {
           Column() {
             // 店铺头图
-            Image(this.restaurant.coverUrl)
+            Image($r('app.media.' + this.restaurant.coverUrl))
               .width('100%')
               .height(200)
               .objectFit(ImageFit.Cover)
 
             // 店铺基本信息卡片
-            Column({ space: 6 }) {
-              Text(this.restaurant.name)
-                .fontSize(20)
-                .fontWeight(FontWeight.Bold)
-
+            Column({ space: 8 }) {
+              Text(this.restaurant.name).fontSize(20).fontWeight(FontWeight.Bold).width('100%')
               Text(`${this.restaurant.category} · 评分 ${this.restaurant.rating.toFixed(1)}`)
-                .fontSize(14)
-                .fontColor('#ff8c00')
+                .fontSize(14).fontColor('#ff8c00').width('100%')
 
-              Text(this.restaurant.address)
-                .fontSize(13)
-                .fontColor('#666')
+              Text(`📍 地址：${this.restaurant.address}`)
+                .fontSize(13).fontColor('#333').width('100%').margin({ top: 4 })
 
-              // 这里可以预留出一块位置，用于后续接入 Map Kit 的单店铺详情地图（比如展示店铺位置 pin）
-              Text('地图位置（可接入 Map Kit 显示该店铺标记）')
-                .fontSize(12)
-                .fontColor('#999')
-                .margin({ top: 8 })
+              // 占位示例
+              Text(`⏰ 营业时间：周一至周日 10:00 - 22:00`)
+                .fontSize(13).fontColor('#333').width('100%')
+
+              Text(`🍲 招牌菜品：招牌推荐菜、主厨精选系列`)
+                .fontSize(13).fontColor('#333').width('100%')
             }
             .padding(16)
             .backgroundColor(Color.White)
@@ -201,7 +196,7 @@ struct StoreDetailView {
             // 评价/探店帖子列表
             Column() {
               Row() {
-                Text('探店日记 / 用户评价')
+                Text('用户评价')
                   .fontSize(16)
                   .fontWeight(FontWeight.Medium)
                 Text(`（${this.postList.length} 条）`)
@@ -238,7 +233,8 @@ struct StoreDetailView {
       Text(item.content || '这位同学很懒，没有写评语~')
         .fontSize(14)
         .fontColor('#333')
-        .margin({ bottom: 6 })
+        .margin({ bottom: 8 })
+        .width('100%')
 
       // 图片九宫格（简单版本，只做横向 Row，实际可以按 3 列网格来写）
       if (item.images && item.images.length > 0) {

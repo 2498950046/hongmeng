@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 
-// 【修复 3】：补上缺失的 imgHeight 属性，确保与首页数据结构100%一致
+
 interface FoodItem {
   id: string;
   title: string;
@@ -11,12 +11,12 @@ interface FoodItem {
   imgHeight: number;
 }
 
-// 【修复 1】：删除了 export。ArkTS 规范中 @Entry 修饰的页面级组件不需要、也不推荐 export
+
 @Entry
 @Component
 struct PostDetailView {
 
-  // 【修复 2】：补充 as FoodItem 断言，满足 ArkTS 对对象字面量的严格校验
+
   @State postInfo: FoodItem = {
     id: '',
     title: '',
@@ -30,8 +30,7 @@ struct PostDetailView {
   @State isLiked: boolean = false;
 
   aboutToAppear() {
-    // 【修复 4】：把 Record<string, any> 改成 Record<string, Object>
-    // ArkTS 严格禁止使用 any 和 unknown 关键字！
+
     const params = router.getParams() as Record<string, Object>;
 
     // 使用中括号的方式安全读取属性
@@ -39,6 +38,8 @@ struct PostDetailView {
       this.postInfo = params['postData'] as FoodItem;
     }
   }
+
+
 
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
@@ -174,6 +175,11 @@ struct PostDetailView {
     .width('100%')
     .height('100%')
   }
+
+
+
+
+
 
   // 加上原地的渐变转场动画，保持和首页体验一致
   pageTransition() {

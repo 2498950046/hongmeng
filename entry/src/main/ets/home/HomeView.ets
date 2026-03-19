@@ -1,7 +1,7 @@
 import { swiperComponent } from "./swiperComponent";
 import router from "@ohos.router";
 
-// 1. 数据结构新增 category (分类) 字段
+// 每张卡片的数据结构
 interface FoodItem {
   id: string;
   title: string;
@@ -9,19 +9,19 @@ interface FoodItem {
   likes: number;
   imgUrl: string;
   imgHeight: number;
-  category: string;  // <--- 新增字段，用于和金刚区匹配
+  category: string;  //种类
 }
 
 @Component
 export struct HomeView {
-  @State searchTxt: string = '';
+  @State searchTxt: string = '';//搜索栏
   private categories: string[] = ['🥘 火锅', '🍢 烧烤', '🍰 甜品', '☕ 咖啡', '🍣 日料'];
 
   // 滚动控制器与悬浮按钮状态
   private scroller: Scroller = new Scroller();
   @State isShowTopBtn: boolean = false;
 
-  // 2. 新增：记录当前选中的分类，默认为空（表示看全部）
+  // 2. 记录当前选中的分类，默认为空（表示看全部）
   @State selectedCategory: string = '';
 
   // 模拟数据：为每一项都加上了对应的 category 字段
@@ -53,13 +53,13 @@ export struct HomeView {
       this.rightColList = filteredList.filter((_, index) => index % 2 !== 0);
     }
   }
-
+//页面出现前（build画页面前）
   aboutToAppear() {
     // 初始化时展示全部（等同于执行一次取消选中）
     this.filterData('');
   }
 
-  // 抽取单个卡片为一个局部构建函数，代码更简洁
+  // 抽取单个卡片为一个局部构建函数
   @Builder
   FoodCard(item: FoodItem) {
     Column() {
@@ -88,16 +88,16 @@ export struct HomeView {
     .borderRadius(8)
     .margin({ bottom: 10 })
     .shadow({ radius: 4, color: '#0A000000', offsetY: 2 })
-    // ================= 👇 新增的跳转逻辑 =================
+    //跳转至详情页
     .onClick(() => {
       router.pushUrl({
-        url: 'home/PostDetailView', // 假设你的详情页建在 home 文件夹下，请确保并在 main_pages.json 中注册
+        url: 'home/PostDetailView',
         params: {
           postData: item // 将整个 item 对象作为参数传过去
         }
       })
     })
-    // ====================================================
+
 
   }
 
@@ -107,7 +107,7 @@ export struct HomeView {
     Stack({ alignContent: Alignment.BottomEnd }) {
       Scroll(this.scroller) {
         Column() {
-          // ========== 1. 顶部搜索栏 ==========
+          // ========== 顶部搜索栏 ==========
 
           Row() {
             Search({ placeholder: '搜一搜附近的神仙美食...' })
@@ -119,7 +119,7 @@ export struct HomeView {
               .onClick(() => {
                 // 点击直接跳转到专业的搜索页面
                 router.pushUrl({
-                  url: 'home/SearchView' // 确保这里和你的真实文件路径一致！
+                  url: 'home/SearchView'
                 })
               })
           }
@@ -129,10 +129,10 @@ export struct HomeView {
 
 
 
-          // ========== 2. 轮播图 ==========
+          // ========== 轮播图 ==========
           swiperComponent()
 
-          // ========== 3. 金刚区 (修改点) ==========
+          // ========== 金刚区 ==========
           Row() {
             ForEach(this.categories, (item: string) => {
               Column() {
@@ -158,14 +158,14 @@ export struct HomeView {
             })
           }.width('100%').padding({ top: 20, bottom: 20, left: 10, right: 10 })
 
-          // ========== 4. 猜你喜欢标题 (动态修改文案) ==========
+          // ========== 猜你喜欢标题 (动态修改文案) ==========
           Row() {
             // 当选中某个分类时，标题也会跟着变成 "✨ 推荐火锅" 等等
             Text(this.selectedCategory === '' ? '✨ 猜你喜欢' : `✨ 推荐${this.selectedCategory.replace(/[^一-龥]/g, '')}`)
               .fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1A1A1A')
           }.width('100%').padding({ left: 15, bottom: 10 })
 
-          // ========== 5. 纯手工双列瀑布流 ==========
+          // ========== 双列瀑布流 ==========
           Row() {
             Column() {
               ForEach(this.leftColList, (item: FoodItem) => {
@@ -224,15 +224,22 @@ export struct HomeView {
 
 
 
-  // ==================== 👇 新增：页面过渡动画 ====================
-  // ==================== 修改：纯净的渐变过渡动画 ====================
+
+
+
+
+
+
+
+  // ==================== 页面过渡动画 ====================
+
   pageTransition() {
-    // 进场时：透明度从 0 开始，同时强制 X 和 Y 轴的位移都为 0（彻底干掉滑动）
+    // 进场时：透明度从 0 开始
     PageTransitionEnter({ duration: 300, curve: Curve.EaseInOut })
       .opacity(0)
       .translate({ x: 0, y: 0 })
 
-    // 退场时：透明度变为 0，同样强制位移为 0
+    // 退场时：透明度变为 0
     PageTransitionExit({ duration: 300, curve: Curve.EaseInOut })
       .opacity(0)
       .translate({ x: 0, y: 0 })

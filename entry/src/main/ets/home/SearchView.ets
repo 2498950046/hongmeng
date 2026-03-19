@@ -13,15 +13,15 @@ interface FoodItem {
 @Entry
 @Component
 export struct SearchView {
-  // 1. 状态控制变量
+  // 状态控制变量
   @State searchTxt: string = '';
   @State isSearching: boolean = false; // 是否处于展示搜索结果的状态
 
-  // 2. 历史与热门数据
+  // 历史与热门数据
   @State historyList: string[] = ['麻辣烫', '寿喜锅', '咖啡'];
   @State hotList: string[] = ['烤肉', '爆浆抹茶', '深夜大排档', '精酿', '早茶'];
 
-  // 3. 模拟的全局数据库（实际开发中会从 RdbManager 或 AGC云数据库获取）
+  // 模拟的全局数据库
   private allFoodData: FoodItem[] = [
     { id: '1', title: '藏在巷子里的神仙烤肉！', author: '小吃货', likes: 256, category: '烧烤', imgUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60' },
     { id: '2', title: '周末打卡超火的网红咖啡店☕', author: '探店达人', likes: 128, category: '咖啡', imgUrl: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60' },
@@ -42,18 +42,20 @@ export struct SearchView {
     }
     this.searchTxt = keyword;
 
-    // 1. 将搜索词加入历史记录（去重并放到第一位）
+    //  将搜索词加入历史记录（去重并放到第一位）
     let filteredHistory = this.historyList.filter(item => item !== keyword);
     this.historyList = [keyword, ...filteredHistory];
 
-    // 2. 过滤数据：只要标题或分类包含关键词，就算匹配中
+    // 过滤数据：只要标题或分类包含关键词，就算匹配中
     this.searchResults = this.allFoodData.filter(item =>
     item.title.includes(keyword) || item.category.includes(keyword)
     );
 
-    // 3. 切换到结果页状态
+    // 切换到结果页状态
     this.isSearching = true;
   }
+
+
 
   // 清空历史记录
   clearHistory() {
@@ -127,6 +129,12 @@ export struct SearchView {
     .margin({ bottom: 10 })
     .shadow({ radius: 4, color: '#0A000000', offsetY: 2 })
   }
+
+
+
+
+
+
 
   build() {
     Column() {
@@ -238,7 +246,14 @@ export struct SearchView {
     .backgroundColor('#FAFAFA')
   }
 
-  // ==================== 修改：纯净的渐变过渡动画 ====================
+
+
+
+
+
+
+
+
   pageTransition() {
     // 进场时：透明度从 0 开始，同时强制 X 和 Y 轴的位移都为 0（彻底干掉滑动）
     PageTransitionEnter({ duration: 300, curve: Curve.EaseInOut })

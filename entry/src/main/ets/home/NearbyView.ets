@@ -16,8 +16,8 @@ import { AsyncCallback } from '@kit.BasicServicesKit';
 @Component
 export struct NearbyView {
   // 拿不到定位时，定位默认在成都天府广场
-  @State currentLatitude: number = 30.657;
-  @State currentLongitude: number = 104.066;
+  @State currentLatitude: number = 30.287459;
+  @State currentLongitude: number = 120.153576;
   // 存放全量数据（从数据库一次性查出所有餐厅，包含原始经纬度、评分等）
   @State allRestaurants: RestaurantInfo[] = [];
   // 存放筛选排序后展示的数据（实时响应用户评分筛选）
@@ -37,7 +37,7 @@ export struct NearbyView {
   // 地图初始化配置（默认先对准成都天府广场）
   @State mapOptions: mapCommon.MapOptions = {
     position: {
-      target: { latitude: 30.657, longitude: 104.066 },
+      target: { latitude: 30.287459, longitude: 120.153576 },
       zoom: 14 // 缩放级别（14左右能看清街道）
     }
   };

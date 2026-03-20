@@ -37,7 +37,7 @@ export struct HomeView {
   @State leftColList: FoodItem[] = [];
   @State rightColList: FoodItem[] = [];
 
-  // 3. 核心方法：根据分类过滤瀑布流数据
+  // 核心方法：根据分类过滤瀑布流数据
   filterData(targetCategory: string) {
     // 如果点击的是已经选中的分类，则取消选中，展示全部数据
     if (this.selectedCategory === targetCategory) {

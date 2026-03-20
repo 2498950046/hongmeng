@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\jyh\\.ohos\\config\\default_application_drlVo9qII1UKIHKtB9UHVC97RNMzFszdzFbnmpjmIC4=.cer",
+          "certpath": "C:\\Users\\LikeF\\.ohos\\config\\default_hongmeng_Uxsp2JU83FD7vPGU8gnbw9U_jSVN40Ke361Dc85LN5E=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001ACCC951965A6A21321F7DD1101A11D6CFA9CA6BC1E07AE5E5E0E2DAD8425B73D07C5F8996CB28",
-          "profile": "C:\\Users\\jyh\\.ohos\\config\\default_application_drlVo9qII1UKIHKtB9UHVC97RNMzFszdzFbnmpjmIC4=.p7b",
+          "keyPassword": "0000001BDBCFF6EA7DF9ADA72743B12E3BFFAF7170F87A5C0E7A411E7CBBB5EC4DF54AD6C6A4998B879BF0",
+          "profile": "C:\\Users\\LikeF\\.ohos\\config\\default_hongmeng_Uxsp2JU83FD7vPGU8gnbw9U_jSVN40Ke361Dc85LN5E=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\jyh\\.ohos\\config\\default_application_drlVo9qII1UKIHKtB9UHVC97RNMzFszdzFbnmpjmIC4=.p12",
-          "storePassword": "0000001A41C45040A79652F9730322F6DCF329ABE29473D97BA1C8387380354A00837E664F35B21C41D1"
+          "storeFile": "C:\\Users\\LikeF\\.ohos\\config\\default_hongmeng_Uxsp2JU83FD7vPGU8gnbw9U_jSVN40Ke361Dc85LN5E=.p12",
+          "storePassword": "0000001B78724BE3ACA8F54E0C2DEEB4146D66769ADFDFEDE4C1F6DF6E1290AB2FEBABD1683DA6CA58FFB0"
         }
       }
     ],

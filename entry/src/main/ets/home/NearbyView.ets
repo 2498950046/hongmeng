@@ -25,6 +25,7 @@ export struct NearbyView {
 
   @State isLocating: boolean = true;
   @State locationDesc: string = '正在定位中...';
+  private isLocationTracking: boolean = false;
 
   // 筛选状态：用户输入的最低和最高评分（字符串形式，便于 TextInput 双向绑定）
   @State minRatingStr: string = '';
@@ -59,6 +60,19 @@ export struct NearbyView {
     this.requestLocationPermission();
   }
 
+  // 组件即将销毁时调用，必须关闭定位监听以节省电量并防止内存泄漏
+  aboutToDisappear() {
+    if (this.isLocationTracking) {
+      try {
+        geoLocationManager.off('locationChange');
+        this.isLocationTracking = false;
+        console.info('Location', '已关闭实时定位监听');
+      } catch (err) {
+        console.error('Location', `关闭定位监听失败: ${JSON.stringify(err)}`);
+      }
+    }
+  }
+
   // 申请定位权限
   async requestLocationPermission() {
     // 创建权限管理实例
@@ -81,7 +95,8 @@ export struct NearbyView {
         return;
       }
       // 权限均已授予，获取真实位置
-      await this.getCurrentLocation();
+      // await this.getCurrentLocation();
+      await this.startRealTimeLocation();
     } catch (err) {
       console.error('权限申请失败', JSON.stringify(err));
       this.locationDesc = '权限申请失败，使用默认位置';
@@ -89,6 +104,64 @@ export struct NearbyView {
     }
   }
 
+  // 开启实时定位监听
+  async startRealTimeLocation() {
+    try {
+      // 配置实时定位请求参数
+      let requestInfo: geoLocationManager.LocationRequest = {
+        'priority': 0x203,       // 定位精度优先 (ACCURACY)
+        'scenario': 0x300,       // 导航场景，适合实时位置更新 (NAVIGATION)
+        'timeInterval': 3,       // 每隔 3 秒更新一次
+        'distanceInterval': 5,   // 或移动距离超过 5 米更新一次
+        'maxAccuracy': 0
+      };
+
+      // 注册位置变化监听器
+      geoLocationManager.on('locationChange', requestInfo, (location) => {
+        this.isLocationTracking = true;
+        this.currentLatitude = location.latitude;
+        this.currentLongitude = location.longitude;
+        this.locationDesc = `实时定位：${this.currentLatitude.toFixed(4)}, ${this.currentLongitude.toFixed(4)}`;
+
+        // 定位更新后，让地图镜头跟随用户真实位置移动
+        if (this.mapController) {
+          this.mapController.moveCamera({
+            target: { latitude: this.currentLatitude, longitude: this.currentLongitude },
+            zoom: 15
+          });
+        }
+
+        // 核心优化：避免设备每动一下就重新查数据库。
+        // 如果数组为空，说明是第一次定位，查数据库；如果已经有数据，只更新距离。
+        if (this.allRestaurants.length === 0) {
+          this.loadNearbyFromDB();
+        } else {
+          this.recalculateDistances();
+        }
+      });
+
+    } catch (err) {
+      console.error('开启实时定位失败', JSON.stringify(err));
+      this.locationDesc = '定位开启失败，使用默认位置';
+      await this.loadNearbyFromDB();
+    }
+  }
+
+  // 当发生位移时，仅利用内存中的坐标重新计算距离，不查询数据库
+  recalculateDistances() {
+    for (let i = 0; i < this.allRestaurants.length; i++) {
+      let item = this.allRestaurants[i];
+      item.distance = this.calcDistance(
+        this.currentLatitude,
+        this.currentLongitude,
+        item.latitude,
+        item.longitude
+      );
+    }
+    // 数据距离更新后，触发筛选与重新排序，随后刷新地图大头针
+    this.applyFilter();
+  }
+/*
   // 调用 geoLocationManager 获取当前位置
   async getCurrentLocation() {
     try {
@@ -114,7 +187,62 @@ export struct NearbyView {
       await this.loadNearbyFromDB();
     }
   }
+*/
+  // 在地图上批量绘制标记点（大头针）
+  async updateMapMarkers() {
+    if (!this.mapController) return;
 
+    try {
+      // 1. 先清空地图上已有的标记点
+      this.mapController.clear();
+
+      // 2. 标记用户自己的当前位置（使用默认蓝色点标识）
+      await this.mapController.addMarker({
+        position: { latitude: this.currentLatitude, longitude: this.currentLongitude },
+        title: '我的位置',
+        clickable: false
+      });
+
+      // 3. 遍历筛选后的餐厅列表，逐个绘制大头针
+      for (let item of this.nearbyRestaurants) {
+        await this.mapController.addMarker({
+          position: { latitude: item.latitude, longitude: item.longitude },
+          title: item.name, // 点击标记后显示的主标题
+          snippet: `${item.category} | 评分: ${item.rating.toFixed(1)} | 距离: ${item.distance.toFixed(1)}km`, // 副标题详情
+          clickable: true
+        });
+      }
+      console.info("Map", "地图大头针刷新完毕！");
+    } catch (error) {
+      console.error("Map", `刷新大头针失败: ${JSON.stringify(error)}`);
+    }
+  }
+
+  // 计算两点经纬度之间的距离（km）
+  // R 是地球平均半径（单位：km），取值 6371 是常用近似值（实际地球半径在 6356~6378 km 之间）
+  // 整体计算逻辑采用 Haversine 公式（球面三角学），用于计算地球表面两点间的大圆距离
+  // 公式推导：先将经纬度差转为弧度，计算 a = sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
+  // 然后 c = 2 * atan2(sqrt(a), sqrt(1-a)) ，最后 distance = R * c
+  calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    // 将纬度差、经度差转换为弧度
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    // 应用 Haversine 公式计算中间值 a
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    // 计算中心角 c（弧度）
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    // 距离 = 半径 * 中心角
+    return R * c;
+  }
+
+  // 该函数将角度（度）转换为弧度（radians），因为 Math.sin、Math.cos、Math.atan2 等三角函数要求输入为弧度制（JS 标准）
+  deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
   // 从本地SQLite的restaurants表中读取数据，计算与当前经纬度的距离并按距离升序排序
   async loadNearbyFromDB() {
     // 开始加载，显示 Loading 动画
@@ -194,62 +322,6 @@ export struct NearbyView {
 
     // 数据筛选完后，同步刷新地图上的大头针
     this.updateMapMarkers();
-  }
-
-  // 核心逻辑：在地图上批量绘制标记点（大头针）
-  async updateMapMarkers() {
-    if (!this.mapController) return;
-
-    try {
-      // 1. 先清空地图上已有的标记点
-      this.mapController.clear();
-
-      // 2. 标记用户自己的当前位置（使用默认蓝色点标识）
-      await this.mapController.addMarker({
-        position: { latitude: this.currentLatitude, longitude: this.currentLongitude },
-        title: '我的位置',
-        clickable: false
-      });
-
-      // 3. 遍历筛选后的餐厅列表，逐个绘制大头针
-      for (let item of this.nearbyRestaurants) {
-        await this.mapController.addMarker({
-          position: { latitude: item.latitude, longitude: item.longitude },
-          title: item.name, // 点击标记后显示的主标题
-          snippet: `${item.category} | 评分: ${item.rating.toFixed(1)} | 距离: ${item.distance.toFixed(1)}km`, // 副标题详情
-          clickable: true
-        });
-      }
-      console.info("Map", "地图大头针刷新完毕！");
-    } catch (error) {
-      console.error("Map", `刷新大头针失败: ${JSON.stringify(error)}`);
-    }
-  }
-
-  // 计算两点经纬度之间的距离（km）
-  // R 是地球平均半径（单位：km），取值 6371 是常用近似值（实际地球半径在 6356~6378 km 之间）
-  // 整体计算逻辑采用 Haversine 公式（球面三角学），用于计算地球表面两点间的大圆距离
-  // 公式推导：先将经纬度差转为弧度，计算 a = sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
-  // 然后 c = 2 * atan2(sqrt(a), sqrt(1-a)) ，最后 distance = R * c
-  calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    // 将纬度差、经度差转换为弧度
-    const dLat = this.deg2rad(lat2 - lat1);
-    const dLon = this.deg2rad(lon2 - lon1);
-    // 应用 Haversine 公式计算中间值 a
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    // 计算中心角 c（弧度）
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    // 距离 = 半径 * 中心角
-    return R * c;
-  }
-
-  // 该函数将角度（度）转换为弧度（radians），因为 Math.sin、Math.cos、Math.atan2 等三角函数要求输入为弧度制（JS 标准）
-  deg2rad(deg: number): number {
-    return deg * (Math.PI / 180);
   }
 
   build() {

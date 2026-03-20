@@ -1,15 +1,8 @@
-// 用于地理位置信息服务（LocationKit），提供 getCurrentLocation 等 API 获取实时经纬度
 import geoLocationManager from '@ohos.geoLocationManager';
-// 用于权限管理模块，负责申请 ohos.permission.LOCATION 等敏感权限
 import abilityAccessCtrl, { Permissions, PermissionRequestResult } from '@ohos.abilityAccessCtrl';
-// 页面路由模块，用于从列表页跳转到店铺详情页（pushUrl）
 import router from '@ohos.router';
-// 关系型数据库操作模块，用于查询 SQLite 中的 restaurants 表
 import relationalStore from '@ohos.data.relationalStore';
-// 自定义数据库管理工具类，提供单例 store 实例，避免重复创建连接
 import { RdbManager } from '../utils/RdbManager';
-
-// 引入华为地图服务核心组件（API 11+ 标准，使用 map 命名空间）
 import { MapComponent, mapCommon, map } from '@kit.MapKit';
 import { AsyncCallback } from '@kit.BasicServicesKit';
 
@@ -125,13 +118,15 @@ export struct NearbyView {
 
         // 定位更新后，让地图镜头跟随用户真实位置移动
         if (this.mapController) {
-          this.mapController.moveCamera({
+          // 生成更新对象
+          let cameraUpdate = map.newCameraPosition({
             target: { latitude: this.currentLatitude, longitude: this.currentLongitude },
-            zoom: 15
+            zoom: 14
           });
+          // 地图更新，间隔1000ms
+          this.mapController.animateCamera(cameraUpdate, 1000);
         }
 
-        // 核心优化：避免设备每动一下就重新查数据库。
         // 如果数组为空，说明是第一次定位，查数据库；如果已经有数据，只更新距离。
         if (this.allRestaurants.length === 0) {
           this.loadNearbyFromDB();
@@ -188,22 +183,22 @@ export struct NearbyView {
     }
   }
 */
-  // 在地图上批量绘制标记点（大头针）
+  // 在地图上批量绘制标记点
   async updateMapMarkers() {
     if (!this.mapController) return;
 
     try {
-      // 1. 先清空地图上已有的标记点
+      // 清空地图上已有的标记点
       this.mapController.clear();
 
-      // 2. 标记用户自己的当前位置（使用默认蓝色点标识）
+      // 标记用户自己的当前位置
       await this.mapController.addMarker({
         position: { latitude: this.currentLatitude, longitude: this.currentLongitude },
         title: '我的位置',
         clickable: false
       });
 
-      // 3. 遍历筛选后的餐厅列表，逐个绘制大头针
+      // 遍历筛选后的餐厅列表，逐个绘制大头针
       for (let item of this.nearbyRestaurants) {
         await this.mapController.addMarker({
           position: { latitude: item.latitude, longitude: item.longitude },
